@@ -8,6 +8,7 @@
 # Author: Konrad Markus <konker@gmail.com>
 #
 
+import sys
 import os
 import traceback
 import time
@@ -19,40 +20,40 @@ import json
 import socket
 import requests
 
-MOTHERSHIP_ENDPOINT_URL = 'http://localhost:9400/'
+MOTHERSHIP_ENDPOINT_URL = 'http://rpi.logbot.org/ms/register.json'
 
 
 def register_mothership():
-    print info_json()
-    '''
     try:
-        r = requests.post(MOTHERSHIP_ENDPOINT_URL, data=info_json())
+        notes  = None
+        id = sys.argv[1]
+        if len(sys.argv) > 2:
+            notes = sys.argv[2]
+
+        r = requests.post(MOTHERSHIP_ENDPOINT_URL, data=info_json(id, notes))
         ret = r.text
     except Exception as ex:
         ret = json.dumps({"status": "ERROR", "body": traceback.format_exc() })
 
     return ret
-    '''
 
 
-def info_json():
-    ret = helper_get_master_struct(),
+def info_json(id, notes=None):
+    ret = helper_get_info_struct(id, notes)
     return json.dumps(ret)
 
 
-    ip_address2 = helper_get_ip_address2()
-
-
 ######### HELPERS ########################################################
-def helper_get_master_struct(notes=None):
+def helper_get_info_struct(id, notes):
     ret = {
+        "id": id,
         "timestamp": time.time() * 1000,
         "uptime_secs": helper_get_uptime_secs(),
-        "ip_address": helper_get_ip4_addresses(),
-        "ip6_address": helper_get_ip6_addresses(),
+        "ipv4_addresses": helper_get_ip4_addresses(),
+        "ipv6_addresses": helper_get_ip6_addresses(),
         "ifconfig": helper_get_ifconfig(),
         "hostname": helper_get_hostname(),
-        "cur_ssid": helper_get_cur_ssid(),
+        #"cur_ssid": helper_get_cur_ssid(),
         "load_average": helper_get_load_average(),
         "sys_temperature": helper_get_sys_temperature(),
         "gpu_temperature": helper_get_gpu_temperature(),
@@ -89,12 +90,12 @@ def helper_get_uptime_secs():
 
 def helper_get_ip4_addresses():
     cmd = 'hostname -I'
-    return set(helper_helper_exec_cmd(cmd).strip().split(' '))
+    return list(set(helper_helper_exec_cmd(cmd).strip().split(' ')))
 
 
 def helper_get_ip6_addresses():
     cmd = 'ifconfig | grep -i "inet6" | sed -e "s/^[ \t]*//" | cut -d " " -f 3'
-    return set(helper_helper_exec_cmd(cmd).strip().split("\n"))
+    return list(set(helper_helper_exec_cmd(cmd).strip().split("\n")))
 
 
 def helper_get_ifconfig():
@@ -108,7 +109,7 @@ def helper_get_hostname():
 
 
 def helper_get_cur_ssid():
-    cmd = 'sudo wpa_cli list_networks | grep CURRENT | cut -f 2'
+    cmd = 'wpa_cli list_networks | grep CURRENT | cut -f 2'
     cur_ssid = helper_helper_exec_cmd(cmd)
     if cur_ssid == '':
         cur_ssid = '?'
