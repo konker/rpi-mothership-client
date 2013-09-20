@@ -19,6 +19,7 @@ from subprocess import check_output, Popen, PIPE
 import json
 import socket
 import requests
+from uuid import getnode as get_mac
 
 MOTHERSHIP_ENDPOINT_URL = 'http://rpi.logbot.org/ms/register.json'
 
@@ -26,7 +27,9 @@ MOTHERSHIP_ENDPOINT_URL = 'http://rpi.logbot.org/ms/register.json'
 def register_mothership():
     try:
         notes  = None
-        id = sys.argv[1]
+        id = get_mac()
+        if len(sys.argv) > 1:
+            id = sys.argv[1]
         if len(sys.argv) > 2:
             notes = sys.argv[2]
 
@@ -117,7 +120,7 @@ def helper_get_cur_ssid():
 
 
 def helper_get_load_average():
-    load_average = '?'
+    loadavg = '?'
     try:
         with open('/proc/loadavg', 'r') as f:
             loadavg = f.readline()
@@ -147,11 +150,11 @@ def helper_get_gpu_temperature():
     gpu_temperature = '?'
     cmd = '/opt/vc/bin/vcgencmd measure_temp | egrep "[0-9.]*" -o'
     try:
-        gpu_temperature = check_output(cmd, shell=True)
+        gpu_temperature = float(check_output(cmd, shell=True))
     except:
         pass
 
-    return float(gpu_temperature)
+    return gpu_temperature
 
 
 def helper_get_memory_info():
